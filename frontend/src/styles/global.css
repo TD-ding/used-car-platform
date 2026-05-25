@@ -14,6 +14,7 @@
   --gray-900: #111827;
   --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
   --radius: 8px;
 }
 
@@ -61,6 +62,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .navbar-links {
@@ -99,6 +101,35 @@ body {
 .role-admin { background: #fee2e2; color: var(--danger); }
 .role-super { background: #fef3c7; color: var(--warning); }
 .role-user { background: var(--primary-light); color: var(--primary); }
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: var(--gray-700);
+}
+
+.mobile-menu {
+  display: none;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.mobile-menu a {
+  display: block;
+  padding: 10px 12px;
+  color: var(--gray-700);
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+
+.mobile-menu a:hover, .mobile-menu a.active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
 
 /* 按钮 */
 .btn {
@@ -156,6 +187,278 @@ body {
 .card-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
 .card-text { font-size: 14px; color: var(--gray-500); }
 
+/* 车辆卡片 */
+.vehicle-card-img {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.vehicle-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.vehicle-card:hover .vehicle-card-img img {
+  transform: scale(1.05);
+}
+
+.featured-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--warning);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.img-count-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+/* 车辆详情 */
+.vehicle-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.vehicle-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.vehicle-price {
+  color: var(--danger);
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.vehicle-params {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+}
+
+.param-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.param-label {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.param-value {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.vehicle-desc {
+  margin-bottom: 24px;
+}
+
+.vehicle-desc h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.vehicle-desc p {
+  color: var(--gray-500);
+  line-height: 1.8;
+}
+
+.seller-card {
+  background: var(--gray-50);
+  padding: 20px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.contact-card {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.contact-btn {
+  font-size: 18px !important;
+  padding: 14px !important;
+  background: var(--success) !important;
+  font-weight: 600;
+}
+
+.contact-btn:hover {
+  opacity: 0.9;
+}
+
+/* 轮播图 */
+.carousel-main {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.carousel-main img {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+  display: block;
+}
+
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.9);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: background 0.2s;
+}
+
+.carousel-btn:hover { background: white; }
+.carousel-prev { left: 12px; }
+.carousel-next { right: 12px; }
+
+.carousel-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.carousel-dot.active { background: white; width: 24px; border-radius: 4px; }
+
+.carousel-thumbs {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.carousel-thumb {
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  border: 2px solid transparent;
+}
+
+.carousel-thumb.active { opacity: 1; border-color: var(--primary); }
+.carousel-thumb:hover { opacity: 1; }
+
+.carousel-placeholder {
+  width: 100%;
+  height: 400px;
+  background: var(--gray-100);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-500);
+  font-size: 18px;
+}
+
+/* 认证页面 */
+.auth-page {
+  min-height: calc(100vh - 104px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border-radius: 16px;
+  padding: 40px 36px;
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.auth-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 20px;
+  color: var(--gray-500);
+}
+
+.auth-footer a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.input-with-icon .form-control {
+  padding-left: 40px;
+}
+
 /* 表单 */
 .form-group { margin-bottom: 16px; }
 
@@ -197,10 +500,12 @@ select.form-control { appearance: auto; }
 @media (max-width: 768px) {
   .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-2 { grid-template-columns: 1fr; }
+  .vehicle-detail-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .vehicle-params { grid-template-columns: 1fr 1fr; }
 }
 
 /* 页面标题 */
@@ -337,16 +642,25 @@ select.form-control { appearance: auto; }
 
 .admin-content { flex: 1; }
 
-@media (max-width: 768px) {
-  .admin-layout { flex-direction: column; }
-  .admin-sidebar { width: 100%; }
-}
-
-/* 加载中 */
+/* 加载中 + 旋转动画 */
 .loading {
   text-align: center;
   padding: 40px;
   color: var(--gray-500);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* 空状态 */
@@ -399,3 +713,22 @@ th {
 td { font-size: 14px; }
 
 tr:hover { background: var(--gray-50); }
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .navbar-links { display: none; }
+  .navbar-user { display: none; }
+  .mobile-menu-btn { display: block; }
+  .mobile-menu { display: block; }
+  .admin-layout { flex-direction: column; }
+  .admin-sidebar { width: 100%; }
+  .carousel-main img { height: 280px; }
+  .auth-card { padding: 28px 20px; }
+}
+
+@media (max-width: 480px) {
+  .main-content { padding: 12px; }
+  .carousel-main img { height: 220px; }
+  .vehicle-price { font-size: 26px; }
+  .vehicle-title { font-size: 22px; }
+}
