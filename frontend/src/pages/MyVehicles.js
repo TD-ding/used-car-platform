@@ -4,16 +4,17 @@ import VehicleCard from '../components/VehicleCard';
 
 export default function MyVehicles() {
   const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/vehicles/my/list').then(res => setVehicles(res.data));
+    api.get('/vehicles/my/list').then(res => setVehicles(res.data)).finally(() => setLoading(false));
   }, []);
 
   const handleDelete = async (id) => {
     if (!window.confirm('确定要删除这辆车吗？')) return;
     try {
       await api.delete(`/vehicles/${id}`);
-      setVehicles(vehicles.filter(v => v.id !== id));
+      setVehicles(prev => prev.filter(v => v.id !== id));
     } catch (err) {
       alert(err.response?.data?.message || '删除失败');
     }
@@ -29,9 +30,11 @@ export default function MyVehicles() {
   return (
     <div>
       <div className="page-header">
-        <h1>🚙 我的车辆</h1>
+        <h1>我的车辆</h1>
       </div>
-      {vehicles.length === 0 ? (
+      {loading ? (
+        <div className="loading"><div className="spinner"></div><p style={{ marginTop: '12px' }}>加载中...</p></div>
+      ) : vehicles.length === 0 ? (
         <div className="empty">
           <h3>还没有发布车辆</h3>
           <p>点击"发布车辆"开始卖车</p>
