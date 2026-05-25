@@ -577,6 +577,28 @@ select.form-control { appearance: auto; }
 
 .search-bar .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
 
+.search-history {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.search-history-tag {
+  padding: 2px 10px;
+  background: var(--gray-100);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-history-tag:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
 /* 消息 */
 .message-list { max-height: 500px; overflow-y: auto; }
 

@@ -33,10 +33,19 @@ router.get('/', async (req, res) => {
 
     const [countResult] = await pool.query(`SELECT COUNT(*) as total FROM vehicles v ${whereClause}`, params);
 
+    // 排序
+    const sortMap = {
+      latest: 'v.is_featured DESC, v.created_at DESC',
+      price_asc: 'v.is_featured DESC, v.price ASC',
+      price_desc: 'v.is_featured DESC, v.price DESC',
+      views: 'v.is_featured DESC, v.views DESC',
+    };
+    const orderClause = sortMap[req.query.sort] || sortMap.latest;
+
     const [vehicles] = await pool.query(
       `SELECT v.*, u.username as seller_name, u.phone as seller_phone
        FROM vehicles v JOIN users u ON v.user_id = u.id
-       ${whereClause} ORDER BY v.is_featured DESC, v.created_at DESC LIMIT ? OFFSET ?`,
+       ${whereClause} ORDER BY ${orderClause} LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
 
