@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
 const auth = require('../middleware/auth');
+const { sanitizeString } = require('../utils/validation');
+const { handleDbError } = require('../utils/errors');
 const router = express.Router();
 
 // --- 用户注册 ---
@@ -13,14 +15,16 @@ router.post('/register', async (req, res) => {
     if (!username || !password) {
       return res.status(400).json({ message: '用户名和密码不能为空' });
     }
-    if (username.length < 3 || username.length > 50) {
+
+    const cleanUsername = sanitizeString(username, 50);
+    if (cleanUsername.length < 3) {
       return res.status(400).json({ message: '用户名长度需在3-50之间' });
     }
     if (password.length < 6) {
       return res.status(400).json({ message: '密码至少6位' });
     }
 
-    const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
+    const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', [cleanUsername]);
     if (existing.length > 0) {
       return res.status(400).json({ message: '用户名已存在' });
     }
@@ -28,11 +32,11 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
       'INSERT INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)',
-      [username, hashedPassword, email || null, phone || null]
+      [cleanUsername, hashedPassword, email || null, phone || null]
     );
 
     const token = jwt.sign(
-      { id: result.insertId, username, role: 'user' },
+      { id: result.insertId, username: cleanUsername, role: 'user' },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -40,11 +44,10 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       message: '注册成功',
       token,
-      user: { id: result.insertId, username, role: 'user', email, phone }
+      user: { id: result.insertId, username: cleanUsername, role: 'user', email, phone }
     });
   } catch (err) {
-    console.error('注册错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '注册');
   }
 });
 
@@ -57,7 +60,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: '用户名和密码不能为空' });
     }
 
-    const [users] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+    const [users] = await pool.query('SELECT * FROM users WHERE username = ?', [sanitizeString(username, 50)]);
     if (users.length === 0) {
       return res.status(400).json({ message: '用户名或密码错误' });
     }
@@ -92,8 +95,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('登录错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '登录');
   }
 });
 
@@ -109,8 +111,7 @@ router.get('/me', auth, async (req, res) => {
     }
     res.json(users[0]);
   } catch (err) {
-    console.error('获取用户信息错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '获取用户信息');
   }
 });
 

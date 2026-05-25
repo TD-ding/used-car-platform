@@ -1,5 +1,4 @@
 const mysql = require('mysql2/promise');
-require('dotenv').config();
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -91,7 +90,7 @@ async function initDatabase() {
         'INSERT INTO users (username, password, role, email) VALUES (?, ?, ?, ?)',
         ['admin', hashedPassword, 'admin', 'admin@usedcar.com']
       );
-      console.log('默认管理员账号已创建: admin / admin123');
+      console.log('默认管理员账号已创建');
     }
 
     console.log('数据库初始化完成');

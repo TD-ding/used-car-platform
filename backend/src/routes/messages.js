@@ -1,7 +1,22 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const auth = require('../middleware/auth');
+const { validateId, sanitizeString } = require('../utils/validation');
+const { handleDbError } = require('../utils/errors');
 const router = express.Router();
+
+// --- 获取未读消息数 ---
+router.get('/unread/count', auth, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'SELECT COUNT(*) as count FROM messages WHERE receiver_id = ? AND is_read = FALSE',
+      [req.user.id]
+    );
+    res.json({ count: result[0].count });
+  } catch (err) {
+    handleDbError(err, res, '获取未读消息数');
+  }
+});
 
 // --- 获取会话列表 ---
 router.get('/conversations', auth, async (req, res) => {
@@ -26,20 +41,20 @@ router.get('/conversations', auth, async (req, res) => {
     );
     res.json(conversations);
   } catch (err) {
-    console.error('获取会话列表错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '获取会话列表');
   }
 });
 
 // --- 获取与某用户的消息记录 ---
 router.get('/:userId', auth, async (req, res) => {
   try {
-    const otherUserId = parseInt(req.params.userId);
+    const idCheck = validateId(req.params.userId, '用户ID');
+    if (!idCheck.valid) return res.status(400).json({ message: idCheck.error });
 
     // 标记为已读
     await pool.query(
       'UPDATE messages SET is_read = TRUE WHERE sender_id = ? AND receiver_id = ? AND is_read = FALSE',
-      [otherUserId, req.user.id]
+      [idCheck.value, req.user.id]
     );
 
     const [messages] = await pool.query(
@@ -47,12 +62,11 @@ router.get('/:userId', auth, async (req, res) => {
        FROM messages m JOIN users u ON m.sender_id = u.id
        WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
        ORDER BY m.created_at ASC LIMIT 100`,
-      [req.user.id, otherUserId, otherUserId, req.user.id]
+      [req.user.id, idCheck.value, idCheck.value, req.user.id]
     );
     res.json(messages);
   } catch (err) {
-    console.error('获取消息记录错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '获取消息记录');
   }
 });
 
@@ -64,33 +78,27 @@ router.post('/', auth, async (req, res) => {
     if (!receiverId || !content) {
       return res.status(400).json({ message: '接收者和消息内容不能为空' });
     }
-    if (receiverId === req.user.id) {
+
+    const receiverCheck = validateId(receiverId, '接收者ID');
+    if (!receiverCheck.valid) return res.status(400).json({ message: '无效的接收者' });
+
+    if (receiverCheck.value === req.user.id) {
       return res.status(400).json({ message: '不能给自己发消息' });
+    }
+
+    const sanitizedContent = sanitizeString(content, 2000);
+    if (!sanitizedContent) {
+      return res.status(400).json({ message: '消息内容不能为空' });
     }
 
     const [result] = await pool.query(
       'INSERT INTO messages (sender_id, receiver_id, vehicle_id, content) VALUES (?, ?, ?, ?)',
-      [req.user.id, receiverId, vehicleId || null, content]
+      [req.user.id, receiverCheck.value, vehicleId || null, sanitizedContent]
     );
 
     res.status(201).json({ message: '发送成功', id: result.insertId });
   } catch (err) {
-    console.error('发送消息错误:', err);
-    res.status(500).json({ message: '服务器错误' });
-  }
-});
-
-// --- 获取未读消息数 ---
-router.get('/unread/count', auth, async (req, res) => {
-  try {
-    const [result] = await pool.query(
-      'SELECT COUNT(*) as count FROM messages WHERE receiver_id = ? AND is_read = FALSE',
-      [req.user.id]
-    );
-    res.json({ count: result[0].count });
-  } catch (err) {
-    console.error('获取未读消息数错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '发送消息');
   }
 });
 

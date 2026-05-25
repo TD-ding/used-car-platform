@@ -1,6 +1,8 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const auth = require('../middleware/auth');
+const { validateId } = require('../utils/validation');
+const { handleDbError } = require('../utils/errors');
 const router = express.Router();
 
 // --- 获取收藏列表 ---
@@ -17,8 +19,7 @@ router.get('/', auth, async (req, res) => {
     });
     res.json(favorites);
   } catch (err) {
-    console.error('获取收藏列表错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '获取收藏列表');
   }
 });
 
@@ -26,35 +27,35 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { vehicleId } = req.body;
-    if (!vehicleId) {
-      return res.status(400).json({ message: '请指定车辆ID' });
-    }
+    const idCheck = validateId(vehicleId, '车辆ID');
+    if (!idCheck.valid) return res.status(400).json({ message: '请指定有效的车辆ID' });
 
     const [existing] = await pool.query(
       'SELECT id FROM favorites WHERE user_id = ? AND vehicle_id = ?',
-      [req.user.id, vehicleId]
+      [req.user.id, idCheck.value]
     );
     if (existing.length > 0) {
       return res.status(400).json({ message: '已收藏过该车辆' });
     }
 
-    await pool.query('INSERT INTO favorites (user_id, vehicle_id) VALUES (?, ?)', [req.user.id, vehicleId]);
+    await pool.query('INSERT INTO favorites (user_id, vehicle_id) VALUES (?, ?)', [req.user.id, idCheck.value]);
     res.status(201).json({ message: '收藏成功' });
   } catch (err) {
-    console.error('添加收藏错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '添加收藏');
   }
 });
 
 // --- 取消收藏 ---
 router.delete('/:vehicleId', auth, async (req, res) => {
   try {
+    const idCheck = validateId(req.params.vehicleId, '车辆ID');
+    if (!idCheck.valid) return res.status(400).json({ message: idCheck.error });
+
     await pool.query('DELETE FROM favorites WHERE user_id = ? AND vehicle_id = ?',
-      [req.user.id, req.params.vehicleId]);
+      [req.user.id, idCheck.value]);
     res.json({ message: '取消收藏成功' });
   } catch (err) {
-    console.error('取消收藏错误:', err);
-    res.status(500).json({ message: '服务器错误' });
+    handleDbError(err, res, '取消收藏');
   }
 });
 
