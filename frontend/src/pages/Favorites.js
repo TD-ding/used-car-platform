@@ -4,26 +4,32 @@ import VehicleCard from '../components/VehicleCard';
 
 export default function Favorites() {
   const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get('/favorites').then(res => setFavorites(res.data));
-  }, []);
+  const loadFavorites = () => {
+    setLoading(true);
+    api.get('/favorites').then(res => setFavorites(res.data)).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadFavorites(); }, []);
 
   const handleRemove = async (vehicleId) => {
     try {
       await api.delete(`/favorites/${vehicleId}`);
-      setFavorites(favorites.filter(f => f.id !== vehicleId));
+      setFavorites(prev => prev.filter(f => f.id !== vehicleId));
     } catch (err) {
-      alert('取消收藏失败');
+      alert(err.response?.data?.message || '取消收藏失败');
     }
   };
 
   return (
     <div>
       <div className="page-header">
-        <h1>❤️ 我的收藏</h1>
+        <h1>我的收藏</h1>
       </div>
-      {favorites.length === 0 ? (
+      {loading ? (
+        <div className="loading"><div className="spinner"></div><p style={{ marginTop: '12px' }}>加载中...</p></div>
+      ) : favorites.length === 0 ? (
         <div className="empty">
           <h3>还没有收藏车辆</h3>
           <p>浏览车辆市场，点击收藏感兴趣的车辆</p>

@@ -9,26 +9,36 @@ export default function Profile() {
   const [oldPwd, setOldPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [msg, setMsg] = useState('');
+  const [msgType, setMsgType] = useState('info');
 
   const handleProfile = async (e) => {
     e.preventDefault();
     try {
       await api.put('/users/profile', { email, phone });
       setMsg('个人信息更新成功');
+      setMsgType('success');
     } catch (err) {
       setMsg(err.response?.data?.message || '更新失败');
+      setMsgType('error');
     }
   };
 
   const handlePassword = async (e) => {
     e.preventDefault();
+    if (newPwd.length < 6) {
+      setMsg('新密码至少6位');
+      setMsgType('error');
+      return;
+    }
     try {
       await api.put('/users/password', { oldPassword: oldPwd, newPassword: newPwd });
       setMsg('密码修改成功');
+      setMsgType('success');
       setOldPwd('');
       setNewPwd('');
     } catch (err) {
       setMsg(err.response?.data?.message || '修改失败');
+      setMsgType('error');
     }
   };
 
@@ -38,21 +48,26 @@ export default function Profile() {
 
   return (
     <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-      <h1 style={{ marginBottom: '24px' }}>👤 个人信息</h1>
+      <h1 style={{ marginBottom: '24px' }}>个人信息</h1>
 
-      {msg && <div className="alert alert-info">{msg}</div>}
+      {msg && <div className={`alert alert-${msgType}`}>{msg}</div>}
 
       <div className="card" style={{ marginBottom: '20px' }}>
         <div className="card-body">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+            <span style={{
+              width: '56px', height: '56px', borderRadius: '50%', background: 'var(--primary-light)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 600, color: 'var(--primary)'
+            }}>
+              {user.username[0].toUpperCase()}
+            </span>
             <div>
               <h2 style={{ fontSize: '20px' }}>{user.username}</h2>
-              <span className={`badge role-${user.role}`} style={{ marginTop: '4px' }}>{roleMap[user.role]}</span>
+              <span className={`role-badge role-${user.role}`} style={{ marginTop: '4px', display: 'inline-block' }}>{roleMap[user.role]}</span>
             </div>
-            <div>
-              <p style={{ color: 'var(--gray-500)', fontSize: '13px' }}>注册于 {new Date(user.created_at).toLocaleDateString()}</p>
-              <p style={{ color: 'var(--gray-500)', fontSize: '13px' }}>发布限额：{user.vehicle_limit} 辆</p>
-            </div>
+          </div>
+          <div style={{ color: 'var(--gray-500)', fontSize: '13px' }}>
+            注册于 {user.created_at ? new Date(user.created_at).toLocaleDateString() : '未知'} · 发布限额 {user.vehicle_limit} 辆
           </div>
         </div>
       </div>
