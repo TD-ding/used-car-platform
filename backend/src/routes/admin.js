@@ -88,7 +88,7 @@ router.put('/vehicles/:id/review', auth, role('admin'), async (req, res) => {
     const idCheck = validateId(req.params.id, '车辆ID');
     if (!idCheck.valid) return res.status(400).json({ message: idCheck.error });
 
-    const { status, reason } = req.body;
+    const { status } = req.body;
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ message: '状态只能为 approved 或 rejected' });
     }
