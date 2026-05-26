@@ -16,6 +16,7 @@ export default function SellerCenter() {
   const [submitting, setSubmitting] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [stats, setStats] = useState(null)
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -25,6 +26,7 @@ export default function SellerCenter() {
     }
     loadProducts()
     api.get('/api/categories').then(res => setCategories(res.data)).catch(() => {})
+    api.get('/api/products/stats').then(res => setStats(res.data)).catch(() => {})
   }, [navigate])
 
   const loadProducts = () => {
@@ -114,7 +116,29 @@ export default function SellerCenter() {
       <div className="tabs">
         <button className={`tab ${tab === 'my' ? 'active' : ''}`} onClick={() => setTab('my')}>我的商品</button>
         <button className={`tab ${tab === 'sold' ? 'active' : ''}`} onClick={() => setTab('sold')}>卖出订单</button>
+        <button className={`tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>数据统计</button>
       </div>
+
+      {tab === 'stats' && stats && (
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-value">{stats.total_products}</div>
+            <div className="stat-label">总商品数</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{stats.on_sale}</div>
+            <div className="stat-label">在售商品</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{stats.sold}</div>
+            <div className="stat-label">已售出</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">¥{stats.revenue.toFixed(2)}</div>
+            <div className="stat-label">总收入</div>
+          </div>
+        </div>
+      )}
 
       {tab === 'my' && (
         <div className="table-wrapper">

@@ -22,11 +22,24 @@ export default function ProductDetail() {
   const [error, setError] = useState('')
   const [ordering, setOrdering] = useState(false)
   const [commenting, setCommenting] = useState(false)
+  const [favorited, setFavorited] = useState(false)
 
   useEffect(() => {
-    api.get(`/api/products/${id}`).then(res => setProduct(res.data))
+    api.get(`/api/products/${id}`).then(res => {
+      setProduct(res.data)
+      setFavorited(res.data.is_favorited)
+    })
     api.get(`/api/comments/product/${id}`).then(res => setComments(res.data))
   }, [id])
+
+  const toggleFavorite = async () => {
+    try {
+      const res = await api.post(`/api/products/${id}/favorite`)
+      setFavorited(res.data.favorited)
+    } catch (err) {
+      // Not logged in - ignore
+    }
+  }
 
   const handleComment = async () => {
     if (!commentText.trim()) return
@@ -85,14 +98,18 @@ export default function ProductDetail() {
             <div>浏览：{product.views} 次</div>
           </div>
           <p style={{ margin: '16px 0', color: 'var(--gray-700)' }}>{product.description}</p>
-
-          {statusInfo.disabled ? (
-            <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-              {statusInfo.label}，不可购买
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {statusInfo.disabled ? (
+              <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                {statusInfo.label}，不可购买
+              </button>
+            ) : (
+              <button className="btn btn-primary" onClick={() => setShowOrder(true)}>立即购买</button>
+            )}
+            <button className="btn btn-outline" onClick={toggleFavorite} style={{ fontSize: '1.1rem' }}>
+              {favorited ? '❤️' : '🤍'} 收藏
             </button>
-          ) : (
-            <button className="btn btn-primary" onClick={() => setShowOrder(true)}>立即购买</button>
-          )}
+          </div>
         </div>
       </div>
 

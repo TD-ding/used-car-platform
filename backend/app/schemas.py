@@ -63,6 +63,9 @@ class ProductResponse(BaseModel):
     created_at: datetime
     seller_name: Optional[str] = ""
     category_name: Optional[str] = ""
+    avg_rating: Optional[float] = 0
+    rating_count: Optional[int] = 0
+    is_favorited: Optional[bool] = False
 
     class Config:
         from_attributes = True

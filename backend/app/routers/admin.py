@@ -12,12 +12,18 @@ router = APIRouter(prefix="/api/admin", tags=["管理"])
 
 @router.get("/users", response_model=list[UserResponse])
 def list_users(
+    search: str = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
-    return db.query(User).order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    query = db.query(User)
+    if search:
+        query = query.filter(
+            (User.username.contains(search)) | (User.email.contains(search))
+        )
+    return query.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
 
 
 @router.put("/users/{user_id}")

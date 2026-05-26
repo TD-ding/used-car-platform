@@ -94,26 +94,39 @@ function Dashboard() {
 
 function UserManagement() {
   const [users, setUsers] = useState([])
+  const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    api.get('/api/admin/users').then(res => setUsers(res.data))
-  }, [])
+  const loadUsers = (q = '') => {
+    const params = q ? { search: q } : {}
+    api.get('/api/admin/users', { params }).then(res => setUsers(res.data))
+  }
+
+  useEffect(() => { loadUsers() }, [])
+
+  const handleSearch = () => loadUsers(search)
+  const handleClear = () => { setSearch(''); loadUsers() }
 
   const updateRole = async (userId, role) => {
     await api.put(`/api/admin/users/${userId}`, { role })
-    api.get('/api/admin/users').then(res => setUsers(res.data))
+    loadUsers(search)
   }
 
   const toggleActive = async (userId, isActive) => {
     await api.put(`/api/admin/users/${userId}`, { is_active: isActive ? 0 : 1 })
-    api.get('/api/admin/users').then(res => setUsers(res.data))
+    loadUsers(search)
   }
 
   return (
-    <div className="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>ID</th><th>用户名</th><th>邮箱</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索用户名或邮箱..." onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+        <button className="btn btn-primary btn-sm" onClick={handleSearch}>搜索</button>
+        {search && <button className="btn btn-outline btn-sm" onClick={handleClear}>清除</button>}
+      </div>
+      <div className="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>用户名</th><th>邮箱</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
         </thead>
         <tbody>
           {users.map(u => (
@@ -138,6 +151,7 @@ function UserManagement() {
           ))}
         </tbody>
       </table>
+    </div>
     </div>
   )
 }
