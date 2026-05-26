@@ -1,14 +1,14 @@
 from typing import Optional, List
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
 
 
 # --- Auth ---
 class UserCreate(BaseModel):
-    username: str
-    email: str
-    password: str
+    username: str = Field(min_length=2, max_length=50)
+    email: str = Field(max_length=100)
+    password: str = Field(min_length=6)
     role: Optional[str] = "user"
 
 
@@ -39,9 +39,9 @@ class UserResponse(BaseModel):
 
 # --- Product ---
 class ProductCreate(BaseModel):
-    title: str
-    description: Optional[str] = ""
-    price: float
+    title: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = Field(default="", max_length=2000)
+    price: float = Field(gt=0)
     original_price: Optional[float] = 0
     condition_level: Optional[str] = "几乎全新"
     category_id: Optional[int] = None
@@ -70,9 +70,9 @@ class ProductResponse(BaseModel):
 
 # --- Order ---
 class OrderCreate(BaseModel):
-    address: str
-    phone: str
-    remark: Optional[str] = ""
+    address: str = Field(min_length=1, max_length=500)
+    phone: str = Field(min_length=1, max_length=20)
+    remark: Optional[str] = Field(default="", max_length=500)
 
 
 class OrderItemResponse(BaseModel):
@@ -104,8 +104,8 @@ class OrderResponse(BaseModel):
 
 # --- Comment ---
 class CommentCreate(BaseModel):
-    content: str
-    rating: Optional[int] = 5
+    content: str = Field(min_length=1, max_length=500)
+    rating: Optional[int] = Field(default=5, ge=1, le=5)
 
 
 class CommentResponse(BaseModel):

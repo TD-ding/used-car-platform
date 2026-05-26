@@ -3,9 +3,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.database import engine, Base
+from app.database import engine, Base, get_db
+from app.models import Category
 from app.routers import auth, products, orders, comments, admin
 from app.config import settings
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
 Base.metadata.create_all(bind=engine)
 
@@ -33,3 +36,8 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/api/categories")
+def public_categories(db: Session = Depends(get_db)):
+    return db.query(Category).order_by(Category.sort_order).all()

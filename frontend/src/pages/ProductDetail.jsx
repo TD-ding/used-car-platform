@@ -11,6 +11,8 @@ export default function ProductDetail() {
   const [showOrder, setShowOrder] = useState(false)
   const [orderForm, setOrderForm] = useState({ address: '', phone: '', remark: '' })
   const [error, setError] = useState('')
+  const [ordering, setOrdering] = useState(false)
+  const [commenting, setCommenting] = useState(false)
 
   useEffect(() => {
     api.get(`/api/products/${id}`).then(res => setProduct(res.data))
@@ -19,16 +21,21 @@ export default function ProductDetail() {
 
   const handleComment = async () => {
     if (!commentText.trim()) return
+    setCommenting(true)
     try {
       const res = await api.post(`/api/comments/product/${id}`, { content: commentText })
       setComments([res.data, ...comments])
       setCommentText('')
     } catch (err) {
       setError(err.response?.data?.detail || '评论失败')
+    } finally {
+      setCommenting(false)
     }
   }
 
   const handleOrder = async () => {
+    setOrdering(true)
+    setError('')
     try {
       await api.post(`/api/orders/${id}`, orderForm)
       alert('下单成功！')
@@ -36,6 +43,8 @@ export default function ProductDetail() {
       navigate('/orders')
     } catch (err) {
       setError(err.response?.data?.detail || '下单失败')
+    } finally {
+      setOrdering(false)
     }
   }
 
@@ -69,12 +78,18 @@ export default function ProductDetail() {
         <h3 style={{ marginBottom: 16 }}>评价 ({comments.length})</h3>
         <div style={{ marginBottom: 16 }}>
           <textarea
+            maxLength={500}
             style={{ width: '100%', padding: 10, border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', minHeight: 80 }}
             placeholder="写下你的评价..."
             value={commentText}
             onChange={e => setCommentText(e.target.value)}
           />
-          <button className="btn btn-primary btn-sm" style={{ marginTop: 8 }} onClick={handleComment}>发表评论</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{commentText.length}/500</span>
+            <button className="btn btn-primary btn-sm" onClick={handleComment} disabled={commenting || !commentText.trim()}>
+              {commenting ? '发送中...' : '发表评论'}
+            </button>
+          </div>
         </div>
         {comments.map(c => (
           <div className="comment-item" key={c.id}>
@@ -90,7 +105,7 @@ export default function ProductDetail() {
 
       {/* Order modal */}
       {showOrder && (
-        <div className="modal-overlay" onClick={() => setShowOrder(false)}>
+        <div className="modal-overlay" onClick={() => !ordering && setShowOrder(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h2>确认购买</h2>
             {error && <div className="error-msg">{error}</div>}
@@ -108,8 +123,10 @@ export default function ProductDetail() {
             </div>
             <p style={{ margin: '12px 0', fontWeight: 600 }}>总价：¥{product.price.toFixed(2)}</p>
             <div style={{ display: 'flex', gap: 12 }}>
-              <button className="btn btn-primary" onClick={handleOrder}>确认下单</button>
-              <button className="btn btn-outline" onClick={() => setShowOrder(false)}>取消</button>
+              <button className="btn btn-primary" onClick={handleOrder} disabled={ordering}>
+                {ordering ? '提交中...' : '确认下单'}
+              </button>
+              <button className="btn btn-outline" onClick={() => setShowOrder(false)} disabled={ordering}>取消</button>
             </div>
           </div>
         </div>

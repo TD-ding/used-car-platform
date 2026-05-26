@@ -44,13 +44,17 @@ def pending_products(
     current_user: User = Depends(require_role("admin")),
 ):
     products = db.query(Product).filter(Product.status == "pending").all()
+    if not products:
+        return []
+    seller_ids = {p.seller_id for p in products}
+    cat_ids = {p.category_id for p in products if p.category_id}
+    sellers = {s.id: s.username for s in db.query(User).filter(User.id.in_(seller_ids)).all()}
+    cats = {c.id: c.name for c in db.query(Category).filter(Category.id.in_(cat_ids)).all()} if cat_ids else {}
     result = []
     for p in products:
-        seller = db.query(User).filter(User.id == p.seller_id).first()
-        cat = db.query(Category).filter(Category.id == p.category_id).first() if p.category_id else None
         pr = ProductResponse.model_validate(p)
-        pr.seller_name = seller.username if seller else ""
-        pr.category_name = cat.name if cat else ""
+        pr.seller_name = sellers.get(p.seller_id, "")
+        pr.category_name = cats.get(p.category_id, "") if p.category_id else ""
         result.append(pr)
     return result
 
@@ -92,7 +96,10 @@ def get_stats(
 
 
 @router.get("/categories", response_model=list[CategoryResponse])
-def list_categories(db: Session = Depends(get_db)):
+def list_categories(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
     return db.query(Category).order_by(Category.sort_order).all()
 
 

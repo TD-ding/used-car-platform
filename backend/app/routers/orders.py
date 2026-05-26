@@ -7,13 +7,29 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Order, OrderItem, Product, User
 from app.schemas import OrderCreate, OrderResponse, OrderItemResponse
-from app.auth import get_current_user, require_role
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/orders", tags=["订单"])
 
 
 def make_order_no():
     return f"ORD{datetime.utcnow().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
+
+
+def _enrich_order_items(order, db):
+    """Batch-load product info for order items."""
+    product_ids = [item.product_id for item in order.items]
+    products = {p.id: p for p in db.query(Product).filter(Product.id.in_(product_ids)).all()} if product_ids else {}
+
+    o = OrderResponse.model_validate(order)
+    o.items = []
+    for item in order.items:
+        ir = OrderItemResponse.model_validate(item)
+        p = products.get(item.product_id)
+        ir.product_title = p.title if p else "已删除"
+        ir.product_image = p.image if p else ""
+        o.items.append(ir)
+    return o
 
 
 @router.post("/{product_id}")
@@ -23,7 +39,8 @@ def create_order(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
+    # Use row-level lock to prevent concurrent purchase
+    product = db.query(Product).filter(Product.id == product_id).with_for_update().first()
     if not product:
         raise HTTPException(status_code=404, detail="商品不存在")
     if product.status != "approved":
@@ -58,18 +75,7 @@ def my_orders(
     current_user: User = Depends(get_current_user),
 ):
     orders = db.query(Order).filter(Order.buyer_id == current_user.id).order_by(Order.created_at.desc()).all()
-    result = []
-    for order in orders:
-        o = OrderResponse.model_validate(order)
-        o.items = []
-        for item in order.items:
-            ir = OrderItemResponse.model_validate(item)
-            p = db.query(Product).filter(Product.id == item.product_id).first()
-            ir.product_title = p.title if p else "已删除"
-            ir.product_image = p.image if p else ""
-            o.items.append(ir)
-        result.append(o)
-    return result
+    return [_enrich_order_items(o, db) for o in orders]
 
 
 @router.get("/sold", response_model=list[OrderResponse])
@@ -77,7 +83,6 @@ def sold_orders(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Find orders containing products sold by this user
     sold_product_ids = [p.id for p in db.query(Product).filter(Product.seller_id == current_user.id).all()]
     if not sold_product_ids:
         return []
@@ -87,18 +92,7 @@ def sold_orders(
         return []
 
     orders = db.query(Order).filter(Order.id.in_(order_ids)).order_by(Order.created_at.desc()).all()
-    result = []
-    for order in orders:
-        o = OrderResponse.model_validate(order)
-        o.items = []
-        for item in order.items:
-            ir = OrderItemResponse.model_validate(item)
-            p = db.query(Product).filter(Product.id == item.product_id).first()
-            ir.product_title = p.title if p else "已删除"
-            ir.product_image = p.image if p else ""
-            o.items.append(ir)
-        result.append(o)
-    return result
+    return [_enrich_order_items(o, db) for o in orders]
 
 
 @router.put("/{order_id}/status")
@@ -116,7 +110,6 @@ def update_order_status(
     if not order:
         raise HTTPException(status_code=404, detail="订单不存在")
 
-    # Buyer can cancel; seller can ship; both can complete
     is_buyer = order.buyer_id == current_user.id
     sold_pids = [p.id for p in db.query(Product).filter(Product.seller_id == current_user.id).all()]
     is_seller = any(oi.product_id in sold_pids for oi in order.items)

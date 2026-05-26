@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
 
@@ -7,15 +7,19 @@ export default function Home() {
   const [keyword, setKeyword] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    api.get('/api/admin/categories').then(res => setCategories(res.data)).catch(() => {})
+    api.get('/api/categories').then(res => setCategories(res.data)).catch(() => {})
     loadProducts()
   }, [])
 
-  const loadProducts = (params = {}) => {
-    api.get('/api/products', { params }).then(res => setProducts(res.data))
-  }
+  const loadProducts = useCallback((params = {}) => {
+    setLoading(true)
+    api.get('/api/products', { params })
+      .then(res => setProducts(res.data))
+      .finally(() => setLoading(false))
+  }, [])
 
   const handleSearch = () => {
     const params = {}
@@ -41,10 +45,16 @@ export default function Home() {
           <option value="">全部分类</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <button className="btn btn-primary" onClick={handleSearch}>搜索</button>
+        <button className="btn btn-primary" onClick={handleSearch} disabled={loading}>
+          {loading ? '搜索中...' : '搜索'}
+        </button>
       </div>
 
-      {products.length === 0 ? (
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--gray-500)' }}>
+          加载中...
+        </div>
+      ) : products.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--gray-500)' }}>
           暂无商品
         </div>
