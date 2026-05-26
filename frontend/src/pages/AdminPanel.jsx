@@ -1,0 +1,196 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import api from '../services/api'
+
+export default function AdminPanel() {
+  const navigate = useNavigate()
+  const [tab, setTab] = useState('dashboard')
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('user')
+    if (!saved) { navigate('/login'); return }
+    const u = JSON.parse(saved)
+    setUser(u)
+    if (u.role !== 'admin') { navigate('/'); return }
+  }, [navigate])
+
+  if (!user) return null
+
+  return (
+    <div className="container">
+      <h2 style={{ marginBottom: 24 }}>管理后台</h2>
+      <div className="tabs">
+        <button className={`tab ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>数据概览</button>
+        <button className={`tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>用户管理</button>
+        <button className={`tab ${tab === 'products' ? 'active' : ''}`} onClick={() => setTab('products')}>商品审核</button>
+        <button className={`tab ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}>分类管理</button>
+      </div>
+
+      {tab === 'dashboard' && <Dashboard />}
+      {tab === 'users' && <UserManagement />}
+      {tab === 'products' && <ProductReview />}
+      {tab === 'categories' && <CategoryManagement />}
+    </div>
+  )
+}
+
+function Dashboard() {
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    api.get('/api/admin/stats').then(res => setStats(res.data))
+  }, [])
+
+  if (!stats) return <div>加载中...</div>
+
+  return (
+    <div className="stats-grid">
+      <div className="stat-card">
+        <div className="stat-value">{stats.total_users}</div>
+        <div className="stat-label">总用户数</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-value">{stats.total_products}</div>
+        <div className="stat-label">总商品数</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-value">{stats.total_orders}</div>
+        <div className="stat-label">总订单数</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-value">¥{stats.total_revenue.toFixed(2)}</div>
+        <div className="stat-label">总交易额</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-value">{stats.pending_products}</div>
+        <div className="stat-label">待审核商品</div>
+      </div>
+    </div>
+  )
+}
+
+function UserManagement() {
+  const [users, setUsers] = useState([])
+
+  useEffect(() => {
+    api.get('/api/admin/users').then(res => setUsers(res.data))
+  }, [])
+
+  const updateRole = async (userId, role) => {
+    await api.put(`/api/admin/users/${userId}`, { role })
+    api.get('/api/admin/users').then(res => setUsers(res.data))
+  }
+
+  const toggleActive = async (userId, isActive) => {
+    await api.put(`/api/admin/users/${userId}`, { is_active: isActive ? 0 : 1 })
+    api.get('/api/admin/users').then(res => setUsers(res.data))
+  }
+
+  return (
+    <div className="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>用户名</th><th>邮箱</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {users.map(u => (
+            <tr key={u.id}>
+              <td>{u.id}</td>
+              <td>{u.username}</td>
+              <td>{u.email}</td>
+              <td><span className={`tag tag-${u.role}`}>{u.role === 'admin' ? '管理员' : u.role === 'merchant' ? '商家' : '用户'}</span></td>
+              <td>{u.is_active ? '正常' : '禁用'}</td>
+              <td>{new Date(u.created_at).toLocaleDateString()}</td>
+              <td>
+                <select value={u.role} onChange={e => updateRole(u.id, e.target.value)} style={{ padding: 4, borderRadius: 4 }}>
+                  <option value="user">用户</option>
+                  <option value="merchant">商家</option>
+                  <option value="admin">管理员</option>
+                </select>{' '}
+                <button className={`btn btn-${u.is_active ? 'danger' : 'success'} btn-sm`} onClick={() => toggleActive(u.id, u.is_active)}>
+                  {u.is_active ? '禁用' : '启用'}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function ProductReview() {
+  const [products, setProducts] = useState([])
+
+  useEffect(() => {
+    api.get('/api/admin/products/pending').then(res => setProducts(res.data))
+  }, [])
+
+  const approve = async (id, status) => {
+    await api.put(`/api/admin/products/${id}/approve`, { status })
+    api.get('/api/admin/products/pending').then(res => setProducts(res.data))
+  }
+
+  return (
+    <div className="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>商品名</th><th>价格</th><th>卖家</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {products.map(p => (
+            <tr key={p.id}>
+              <td>{p.id}</td>
+              <td>{p.title}</td>
+              <td>¥{p.price.toFixed(2)}</td>
+              <td>{p.seller_name}</td>
+              <td>
+                <button className="btn btn-success btn-sm" onClick={() => approve(p.id, 'approved')}>通过</button>{' '}
+                <button className="btn btn-danger btn-sm" onClick={() => approve(p.id, 'rejected')}>拒绝</button>
+              </td>
+            </tr>
+          ))}
+          {products.length === 0 && (
+            <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--gray-500)' }}>没有待审核商品</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function CategoryManagement() {
+  const [categories, setCategories] = useState([])
+  const [name, setName] = useState('')
+
+  useEffect(() => {
+    api.get('/api/admin/categories').then(res => setCategories(res.data))
+  }, [])
+
+  const addCategory = async () => {
+    if (!name.trim()) return
+    await api.post('/api/admin/categories', { name })
+    setName('')
+    api.get('/api/admin/categories').then(res => setCategories(res.data))
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="分类名称" />
+        <button className="btn btn-primary" onClick={addCategory}>添加分类</button>
+      </div>
+      <div className="table-wrapper">
+        <table>
+          <thead><tr><th>ID</th><th>分类名</th><th>排序</th></tr></thead>
+          <tbody>
+            {categories.map(c => (
+              <tr key={c.id}><td>{c.id}</td><td>{c.name}</td><td>{c.sort_order}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
