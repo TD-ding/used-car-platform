@@ -10,9 +10,12 @@ from app.config import settings
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="二手商品交易平台", version="1.0.0")
+
+
+@app.on_event("startup")
+def startup():
+    Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,

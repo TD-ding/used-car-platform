@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database import get_db
-from app.models import User, Product, Order, OrderItem, Category
+from app.models import User, Product, Order, Category
 from app.schemas import UserResponse, UserUpdate, ProductResponse, ProductApprove, CategoryCreate, CategoryResponse
 from app.auth import require_role
 

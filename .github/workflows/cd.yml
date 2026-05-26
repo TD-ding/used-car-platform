@@ -1,0 +1,32 @@
+name: CD
+on:
+  push:
+    branches: [master]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install & Lint Backend
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install flake8
+          flake8 app/ --count --show-source --statistics
+      - name: Test Backend
+        run: |
+          cd backend
+          pip install pytest httpx
+          pytest tests/ -v
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+      - name: Build Backend Docker Image
+        run: docker build -t backend ./backend
+      - name: Build Frontend Docker Image
+        run: docker build -f frontend/Dockerfile -t frontend .
