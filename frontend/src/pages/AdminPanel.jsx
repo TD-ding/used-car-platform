@@ -211,18 +211,27 @@ function CategoryManagement() {
     api.get('/api/admin/categories').then(res => setCategories(res.data))
   }
 
+  const deleteCategory = async (id) => {
+    if (!window.confirm('确定要删除此分类吗？相关商品将变为未分类。')) return
+    await api.delete(`/api/admin/categories/${id}`)
+    api.get('/api/admin/categories').then(res => setCategories(res.data))
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="分类名称" />
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="分类名称" onKeyDown={e => e.key === 'Enter' && addCategory()} />
         <button className="btn btn-primary" onClick={addCategory}>添加分类</button>
       </div>
       <div className="table-wrapper">
         <table>
-          <thead><tr><th>ID</th><th>分类名</th><th>排序</th></tr></thead>
+          <thead><tr><th>ID</th><th>分类名</th><th>排序</th><th>操作</th></tr></thead>
           <tbody>
             {categories.map(c => (
-              <tr key={c.id}><td>{c.id}</td><td>{c.name}</td><td>{c.sort_order}</td></tr>
+              <tr key={c.id}>
+                <td>{c.id}</td><td>{c.name}</td><td>{c.sort_order}</td>
+                <td><button className="btn btn-danger btn-sm" onClick={() => deleteCategory(c.id)}>删除</button></td>
+              </tr>
             ))}
           </tbody>
         </table>

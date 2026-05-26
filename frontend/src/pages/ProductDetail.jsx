@@ -72,6 +72,8 @@ export default function ProductDetail() {
 
   if (!product) return <div className="container">加载中...</div>
 
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const isOwner = currentUser.username && product.seller_name === currentUser.username
   const statusInfo = STATUS_MAP[product.status] || { label: product.status, color: '#6b7280', disabled: true }
 
   return (
@@ -98,26 +100,31 @@ export default function ProductDetail() {
             <div>浏览：{product.views} 次</div>
           </div>
           <p style={{ margin: '16px 0', color: 'var(--gray-700)' }}>{product.description}</p>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {statusInfo.disabled ? (
-              <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-                {statusInfo.label}，不可购买
+          {isOwner ? (
+            <Link to="/seller" className="btn btn-outline">编辑商品（前往卖家中心）</Link>
+          ) : (
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              {statusInfo.disabled ? (
+                <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                  {statusInfo.label}，不可购买
+                </button>
+              ) : (
+                <button className="btn btn-primary" onClick={() => setShowOrder(true)}>立即购买</button>
+              )}
+              <button className="btn btn-outline" onClick={toggleFavorite} style={{ fontSize: '1.1rem' }}>
+                {favorited ? '❤️' : '🤍'} 收藏
               </button>
-            ) : (
-              <button className="btn btn-primary" onClick={() => setShowOrder(true)}>立即购买</button>
-            )}
-            <button className="btn btn-outline" onClick={toggleFavorite} style={{ fontSize: '1.1rem' }}>
-              {favorited ? '❤️' : '🤍'} 收藏
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Comments section */}
       <div style={{ marginTop: 32 }}>
         <h3 style={{ marginBottom: 16 }}>评价 ({comments.length})</h3>
-        <div style={{ marginBottom: 16 }}>
-          <textarea
+        {!isOwner && (
+          <div style={{ marginBottom: 16 }}>
+            <textarea
             maxLength={500}
             style={{ width: '100%', padding: 10, border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', minHeight: 80 }}
             placeholder="写下你的评价..."
@@ -131,6 +138,7 @@ export default function ProductDetail() {
             </button>
           </div>
         </div>
+        )}
         {comments.map(c => (
           <div className="comment-item" key={c.id}>
             <div className="comment-header">
