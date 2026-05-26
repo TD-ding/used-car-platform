@@ -7,15 +7,20 @@ import ProductDetail from './pages/ProductDetail'
 import SellerCenter from './pages/SellerCenter'
 import Orders from './pages/Orders'
 import AdminPanel from './pages/AdminPanel'
+import Favorites from './pages/Favorites'
 import api from './services/api'
 
 function Navbar() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
+  const [favCount, setFavCount] = useState(0)
 
   useEffect(() => {
     const saved = localStorage.getItem('user')
-    if (saved) setUser(JSON.parse(saved))
+    if (saved) {
+      setUser(JSON.parse(saved))
+      api.get('/api/products/favorites/count').then(res => setFavCount(res.data.count)).catch(() => {})
+    }
   }, [])
 
   const handleLogout = () => {
@@ -33,6 +38,9 @@ function Navbar() {
           <Link to="/">首页</Link>
           {user ? (
             <>
+              <Link to="/favorites">
+                收藏{favCount > 0 && <span style={{ background: 'var(--danger)', color: 'white', borderRadius: 10, fontSize: '0.7rem', padding: '1px 6px', marginLeft: 4 }}>{favCount}</span>}
+              </Link>
               {(user.role === 'merchant' || user.role === 'admin') && (
                 <Link to="/seller">卖家中心</Link>
               )}
@@ -67,6 +75,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/favorites" element={<Favorites />} />
         <Route path="/seller" element={<SellerCenter />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/admin" element={<AdminPanel />} />
