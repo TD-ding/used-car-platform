@@ -120,3 +120,19 @@ def create_category(
     db.commit()
     db.refresh(cat)
     return cat
+
+
+@router.delete("/categories/{category_id}")
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    cat = db.query(Category).filter(Category.id == category_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="分类不存在")
+    # Null out references before deleting to avoid FK constraint errors
+    db.query(Product).filter(Product.category_id == category_id).update({"category_id": None})
+    db.delete(cat)
+    db.commit()
+    return {"message": "分类已删除"}

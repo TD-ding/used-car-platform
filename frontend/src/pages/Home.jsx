@@ -26,6 +26,7 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true)
   const [sort, setSort] = useState('newest')
   const sentinelRef = useRef(null)
+  const loadingRef = useRef(false)
   const PAGE_SIZE = 12
 
   useEffect(() => {
@@ -34,6 +35,8 @@ export default function Home() {
   }, [])
 
   const loadProducts = useCallback((pageNum = 1, params = {}) => {
+    if (loadingRef.current) return
+    loadingRef.current = true
     setLoading(true)
     const queryParams = { page: pageNum, page_size: PAGE_SIZE, sort, ...params }
     api.get('/api/products', { params: queryParams })
@@ -46,7 +49,7 @@ export default function Home() {
         setHasMore(res.data.length === PAGE_SIZE)
         setPage(pageNum)
       })
-      .finally(() => setLoading(false))
+      .finally(() => { setLoading(false); loadingRef.current = false })
   }, [sort])
 
   useEffect(() => {
