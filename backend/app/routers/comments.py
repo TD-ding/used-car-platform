@@ -1,3 +1,5 @@
+import html
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -12,11 +14,18 @@ router = APIRouter(prefix="/api/comments", tags=["评论"])
 @router.get("/product/{product_id}", response_model=list[CommentResponse])
 def product_comments(product_id: int, db: Session = Depends(get_db)):
     comments = db.query(Comment).filter(Comment.product_id == product_id).order_by(Comment.created_at.desc()).all()
+    if not comments:
+        return []
+
+    # Batch-load usernames
+    user_ids = {c.user_id for c in comments}
+    users = {u.id: u.username for u in db.query(User).filter(User.id.in_(user_ids)).all()}
+
     result = []
     for c in comments:
         cr = CommentResponse.model_validate(c)
-        user = db.query(User).filter(User.id == c.user_id).first()
-        cr.username = user.username if user else "匿名"
+        cr.content = html.escape(c.content)
+        cr.username = users.get(c.user_id, "匿名")
         result.append(cr)
     return result
 
@@ -35,7 +44,7 @@ def create_comment(
     comment = Comment(
         product_id=product_id,
         user_id=current_user.id,
-        content=comment_data.content,
+        content=html.escape(comment_data.content),
         rating=min(max(comment_data.rating, 1), 5),
     )
     db.add(comment)

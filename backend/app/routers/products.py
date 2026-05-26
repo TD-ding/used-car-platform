@@ -1,4 +1,5 @@
 import os
+import imghdr
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
@@ -11,6 +12,27 @@ from app.auth import get_current_user, require_role
 from app.config import settings
 
 router = APIRouter(prefix="/api/products", tags=["商品"])
+
+ALLOWED_IMAGE_TYPES = {"jpeg", "png", "gif", "webp"}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+def _enrich_products(products, db):
+    """Batch-load seller and category data to avoid N+1 queries."""
+    if not products:
+        return []
+    seller_ids = {p.seller_id for p in products}
+    cat_ids = {p.category_id for p in products if p.category_id}
+    sellers = {s.id: s.username for s in db.query(User).filter(User.id.in_(seller_ids)).all()}
+    cats = {c.id: c.name for c in db.query(Category).filter(Category.id.in_(cat_ids)).all()} if cat_ids else {}
+
+    result = []
+    for p in products:
+        pr = ProductResponse.model_validate(p)
+        pr.seller_name = sellers.get(p.seller_id, "")
+        pr.category_name = cats.get(p.category_id, "") if p.category_id else ""
+        result.append(pr)
+    return result
 
 
 @router.get("", response_model=list[ProductResponse])
@@ -36,18 +58,8 @@ def list_products(
     if condition_level:
         query = query.filter(Product.condition_level == condition_level)
 
-    total = query.count()
     products = query.order_by(Product.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
-
-    result = []
-    for p in products:
-        seller = db.query(User).filter(User.id == p.seller_id).first()
-        cat = db.query(Category).filter(Category.id == p.category_id).first() if p.category_id else None
-        pr = ProductResponse.model_validate(p)
-        pr.seller_name = seller.username if seller else ""
-        pr.category_name = cat.name if cat else ""
-        result.append(pr)
-    return result
+    return _enrich_products(products, db)
 
 
 @router.get("/count")
@@ -65,12 +77,15 @@ def my_products(
     if status:
         query = query.filter(Product.status == status)
     products = query.order_by(Product.created_at.desc()).all()
+
+    cat_ids = {p.category_id for p in products if p.category_id}
+    cats = {c.id: c.name for c in db.query(Category).filter(Category.id.in_(cat_ids)).all()} if cat_ids else {}
+
     result = []
     for p in products:
-        cat = db.query(Category).filter(Category.id == p.category_id).first() if p.category_id else None
         pr = ProductResponse.model_validate(p)
         pr.seller_name = current_user.username
-        pr.category_name = cat.name if cat else ""
+        pr.category_name = cats.get(p.category_id, "") if p.category_id else ""
         result.append(pr)
     return result
 
@@ -80,16 +95,10 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="商品不存在")
-    # Increment view count
     product.views += 1
     db.commit()
 
-    seller = db.query(User).filter(User.id == product.seller_id).first()
-    cat = db.query(Category).filter(Category.id == product.category_id).first() if product.category_id else None
-    pr = ProductResponse.model_validate(product)
-    pr.seller_name = seller.username if seller else ""
-    pr.category_name = cat.name if cat else ""
-    return pr
+    return _enrich_products([product], db)[0]
 
 
 @router.post("", response_model=ProductResponse)
@@ -164,10 +173,19 @@ def delete_product(
 
 @router.post("/upload")
 def upload_image(file: UploadFile = File(...)):
+    # Validate file size
+    content = file.file.read()
+    if len(content) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="图片大小不能超过5MB")
+
+    # Validate image type by magic bytes
+    img_type = imghdr.what(None, h=content[:32])
+    if not img_type or img_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="只支持 JPG/PNG/GIF/WebP 格式的图片")
+
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"{uuid.uuid4().hex}{ext}"
+    filename = f"{uuid.uuid4().hex}.{img_type}"
     filepath = os.path.join(settings.UPLOAD_DIR, filename)
     with open(filepath, "wb") as f:
-        f.write(file.file.read())
+        f.write(content)
     return {"url": f"/uploads/{filename}"}

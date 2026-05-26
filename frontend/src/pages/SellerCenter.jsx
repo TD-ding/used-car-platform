@@ -13,6 +13,8 @@ export default function SellerCenter() {
   const [form, setForm] = useState(EMPTY_PRODUCT)
   const [editId, setEditId] = useState(null)
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -21,15 +23,36 @@ export default function SellerCenter() {
       return
     }
     loadProducts()
-    api.get('/api/admin/categories').then(res => setCategories(res.data)).catch(() => {})
+    api.get('/api/categories').then(res => setCategories(res.data)).catch(() => {})
   }, [navigate])
 
   const loadProducts = () => {
     api.get('/api/products/my').then(res => setProducts(res.data)).catch(() => {})
   }
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      setError('图片大小不能超过5MB')
+      return
+    }
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await api.post('/api/products/upload', formData)
+      setForm({ ...form, image: res.data.url })
+    } catch (err) {
+      setError(err.response?.data?.detail || '上传失败')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleSubmit = async () => {
     setError('')
+    setSubmitting(true)
     const data = {
       ...form,
       price: parseFloat(form.price) || 0,
@@ -48,6 +71,8 @@ export default function SellerCenter() {
       loadProducts()
     } catch (err) {
       setError(err.response?.data?.detail || '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -66,7 +91,7 @@ export default function SellerCenter() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('确定要下架此商品吗？')) return
+    if (!window.confirm('确定要下架此商品吗？')) return
     await api.delete(`/api/products/${id}`)
     loadProducts()
   }
@@ -123,7 +148,7 @@ export default function SellerCenter() {
 
       {/* Product form modal */}
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+        <div className="modal-overlay" onClick={() => !submitting && setShowForm(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h2>{editId ? '编辑商品' : '发布商品'}</h2>
             {error && <div className="error-msg">{error}</div>}
@@ -133,15 +158,15 @@ export default function SellerCenter() {
             </div>
             <div className="form-group">
               <label>商品描述</label>
-              <textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+              <textarea rows={3} maxLength={2000} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
             </div>
             <div className="form-group">
               <label>售价</label>
-              <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} required />
+              <input type="number" min="0.01" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} required />
             </div>
             <div className="form-group">
               <label>原价（可选）</label>
-              <input type="number" value={form.original_price} onChange={e => setForm({ ...form, original_price: e.target.value })} />
+              <input type="number" min="0" step="0.01" value={form.original_price} onChange={e => setForm({ ...form, original_price: e.target.value })} />
             </div>
             <div className="form-group">
               <label>成色</label>
@@ -160,12 +185,22 @@ export default function SellerCenter() {
               </select>
             </div>
             <div className="form-group">
-              <label>图片URL</label>
-              <input value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} placeholder="输入图片链接" />
+              <label>商品图片</label>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+                {uploading && <span style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>上传中...</span>}
+              </div>
+              {form.image && (
+                <div style={{ marginTop: 8 }}>
+                  <img src={form.image} alt="preview" style={{ maxWidth: 120, maxHeight: 80, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--gray-200)' }} />
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
-              <button className="btn btn-primary" onClick={handleSubmit}>{editId ? '保存修改' : '发布'}</button>
-              <button className="btn btn-outline" onClick={() => setShowForm(false)}>取消</button>
+              <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? '提交中...' : (editId ? '保存修改' : '发布')}
+              </button>
+              <button className="btn btn-outline" onClick={() => setShowForm(false)} disabled={submitting}>取消</button>
             </div>
           </div>
         </div>
