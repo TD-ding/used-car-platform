@@ -7,3 +7,4 @@ uploads/
 *.egg-info/
 .venv/
 venv/
+test.db
