@@ -15,6 +15,7 @@ export default function SellerCenter() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -90,9 +91,14 @@ export default function SellerCenter() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('确定要下架此商品吗？')) return
-    await api.delete(`/api/products/${id}`)
+  const handleDelete = (product) => {
+    setConfirmDelete(product)
+  }
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDelete) return
+    await api.delete(`/api/products/${confirmDelete.id}`)
+    setConfirmDelete(null)
     loadProducts()
   }
 
@@ -132,7 +138,7 @@ export default function SellerCenter() {
                   <td>
                     <button className="btn btn-outline btn-sm" onClick={() => handleEdit(p)}>编辑</button>
                     {' '}
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}>下架</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p)}>下架</button>
                   </td>
                 </tr>
               ))}
@@ -201,6 +207,23 @@ export default function SellerCenter() {
                 {submitting ? '提交中...' : (editId ? '保存修改' : '发布')}
               </button>
               <button className="btn btn-outline" onClick={() => setShowForm(false)} disabled={submitting}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: 12 }}>⚠️</div>
+            <h2>确认下架</h2>
+            <p style={{ color: 'var(--gray-700)', margin: '12px 0' }}>
+              确定要下架「<strong>{confirmDelete.title}</strong>」吗？
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
+              <button className="btn btn-outline" onClick={() => setConfirmDelete(null)}>取消</button>
+              <button className="btn btn-danger" onClick={confirmDeleteAction}>确认下架</button>
             </div>
           </div>
         </div>

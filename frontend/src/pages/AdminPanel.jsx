@@ -1,6 +1,28 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+
+// Animated counter from 0 to value
+function AnimatedNumber({ value, decimals = 0, duration = 800 }) {
+  const [display, setDisplay] = useState(0)
+  const startRef = useRef(null)
+
+  useEffect(() => {
+    const start = 0
+    const startTime = performance.now()
+    const animate = (now) => {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(start + (value - start) * eased)
+      if (progress < 1) requestAnimationFrame(animate)
+    }
+    requestAnimationFrame(animate)
+  }, [value, duration])
+
+  return decimals > 0 ? display.toFixed(decimals) : Math.round(display)
+}
 
 export default function AdminPanel() {
   const navigate = useNavigate()
@@ -47,23 +69,23 @@ function Dashboard() {
   return (
     <div className="stats-grid">
       <div className="stat-card">
-        <div className="stat-value">{stats.total_users}</div>
+        <div className="stat-value"><AnimatedNumber value={stats.total_users} /></div>
         <div className="stat-label">总用户数</div>
       </div>
       <div className="stat-card">
-        <div className="stat-value">{stats.total_products}</div>
+        <div className="stat-value"><AnimatedNumber value={stats.total_products} /></div>
         <div className="stat-label">总商品数</div>
       </div>
       <div className="stat-card">
-        <div className="stat-value">{stats.total_orders}</div>
+        <div className="stat-value"><AnimatedNumber value={stats.total_orders} /></div>
         <div className="stat-label">总订单数</div>
       </div>
       <div className="stat-card">
-        <div className="stat-value">¥{stats.total_revenue.toFixed(2)}</div>
+        <div className="stat-value">¥<AnimatedNumber value={stats.total_revenue} decimals={2} /></div>
         <div className="stat-label">总交易额</div>
       </div>
       <div className="stat-card">
-        <div className="stat-value">{stats.pending_products}</div>
+        <div className="stat-value"><AnimatedNumber value={stats.pending_products} /></div>
         <div className="stat-label">待审核商品</div>
       </div>
     </div>

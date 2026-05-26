@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
+const STATUS_MAP = {
+  pending: { label: '审核中', color: '#f59e0b', disabled: true },
+  approved: { label: '在售', color: '#10b981', disabled: false },
+  rejected: { label: '已拒绝', color: '#ef4444', disabled: true },
+  sold: { label: '已售出', color: '#6366f1', disabled: true },
+  off_shelf: { label: '已下架', color: '#6b7280', disabled: true },
+}
+
 export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -9,6 +17,7 @@ export default function ProductDetail() {
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [showOrder, setShowOrder] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
   const [orderForm, setOrderForm] = useState({ address: '', phone: '', remark: '' })
   const [error, setError] = useState('')
   const [ordering, setOrdering] = useState(false)
@@ -50,12 +59,19 @@ export default function ProductDetail() {
 
   if (!product) return <div className="container">加载中...</div>
 
+  const statusInfo = STATUS_MAP[product.status] || { label: product.status, color: '#6b7280', disabled: true }
+
   return (
     <div className="container">
       <div className="product-detail">
         <img className="product-image" src={product.image || 'https://via.placeholder.com/600x400?text=No+Image'} alt={product.title} />
         <div className="product-info">
-          <h1>{product.title}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1>{product.title}</h1>
+            <span className="product-status-badge" style={{ background: statusInfo.color + '20', color: statusInfo.color }}>
+              {statusInfo.label}
+            </span>
+          </div>
           <div className="price-section">
             <span className="current-price">¥{product.price.toFixed(2)}</span>
             {product.original_price > 0 && (
@@ -69,7 +85,14 @@ export default function ProductDetail() {
             <div>浏览：{product.views} 次</div>
           </div>
           <p style={{ margin: '16px 0', color: 'var(--gray-700)' }}>{product.description}</p>
-          <button className="btn btn-primary" onClick={() => setShowOrder(true)}>立即购买</button>
+
+          {statusInfo.disabled ? (
+            <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+              {statusInfo.label}，不可购买
+            </button>
+          ) : (
+            <button className="btn btn-primary" onClick={() => setShowOrder(true)}>立即购买</button>
+          )}
         </div>
       </div>
 

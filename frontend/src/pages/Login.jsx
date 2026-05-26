@@ -6,10 +6,12 @@ export default function Login() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ username: '', password: '' })
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSubmitting(true)
     try {
       const res = await api.post('/api/auth/login', form)
       localStorage.setItem('token', res.data.access_token)
@@ -20,6 +22,8 @@ export default function Login() {
       navigate('/')
     } catch (err) {
       setError(err.response?.data?.detail || '登录失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -36,7 +40,9 @@ export default function Login() {
           <label>密码</label>
           <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
         </div>
-        <button className="btn btn-primary" type="submit">登录</button>
+        <button className="btn btn-primary" type="submit" disabled={submitting}>
+          {submitting ? '登录中...' : '登录'}
+        </button>
         <p>还没有账号？<Link to="/register">去注册</Link></p>
       </form>
     </div>

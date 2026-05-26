@@ -457,6 +457,47 @@ td { font-size: 0.9rem; }
   color: var(--warning);
 }
 
+/* --- Category tags --- */
+.cat-tag {
+  padding: 6px 16px;
+  border: 1px solid var(--gray-300);
+  border-radius: 999px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--gray-700);
+  transition: all 0.2s;
+}
+
+.cat-tag:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.cat-tag.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* --- Load more --- */
+.load-more-sentinel {
+  text-align: center;
+  padding: 24px;
+  color: var(--gray-500);
+  font-size: 0.9rem;
+}
+
+/* --- Product status badge --- */
+.product-status-badge {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
   .product-detail {
